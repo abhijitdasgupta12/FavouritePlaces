@@ -23,7 +23,7 @@ public class SQLiteDB_Manager extends SQLiteOpenHelper
         @Override
         public void onCreate(SQLiteDatabase db)
         {
-            String qry="create table tbl_place (id integer primary key autoincrement, name text, latlng text)";
+            String qry="create table tbl_place (id integer primary key autoincrement, name text, latitude text, longitude text)";
             db.execSQL(qry);
         }
 
@@ -37,7 +37,7 @@ public class SQLiteDB_Manager extends SQLiteOpenHelper
         }
 
         //User-defined method, to add record in the database through user
-        public String addRecord(String name, String latlng)
+        public String addRecord(String name, String latitude, String longitude)
         {
             //Manually passing object of SQLiteDatabase since the object is not available in the parameter of the method
             SQLiteDatabase db=this.getWritableDatabase();
@@ -47,7 +47,8 @@ public class SQLiteDB_Manager extends SQLiteOpenHelper
 
             //The Syntax: values.put("Column_Name_Of_Database", parameter_used_in_the_method)
             values.put("name",name);
-            values.put("latlng",latlng);
+            values.put("latitude",latitude);
+            values.put("longitude",longitude);
 
             //Inserting data into database and receiving the result of operation -1 or +1
             float res=db.insert("tbl_place", null, values);
@@ -64,11 +65,23 @@ public class SQLiteDB_Manager extends SQLiteOpenHelper
         {
             SQLiteDatabase db=this.getReadableDatabase();
 
-            String qry="select * from tbl_place order by id desc";
+            String qry="select * from tbl_place";
 
             //Cursor
             Cursor c_obj=db.rawQuery(qry,null);
 
             return c_obj;
+        }
+
+        //Fetching record from a specific row
+        public Cursor fetchRecordsFromSelectedRow(int column_index)
+        {
+            SQLiteDatabase db= this.getReadableDatabase();
+
+            String qry="select * from tbl_place where id="+column_index;
+
+            Cursor cursor= db.rawQuery(qry, null);
+
+            return cursor;
         }
     }
