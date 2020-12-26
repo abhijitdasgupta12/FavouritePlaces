@@ -40,13 +40,14 @@ public class MyPinnedLocations extends AppCompatActivity {
 //            getString(0) = 0th index or 1st column of the database
 //            getString(1) = 1st index or 2nd column of the database etc.
 //             *******************/
-            modelClass=new ModelClass(cursors.getString(1),cursors.getString(2));
+            modelClass=new ModelClass(cursors.getString(1));
             dataholders.add(modelClass);
         }
 
         //Setting up adapter
-        MyAdapter myAdapter=new MyAdapter(dataholders);
+        MyAdapter myAdapter=new MyAdapter(dataholders,getApplicationContext());
         recyclerView.setAdapter(myAdapter);
+
 
         AlertDialog.Builder builder=new AlertDialog.Builder(MyPinnedLocations.this); //Pass any view to continue
         builder.setTitle("Tips");
