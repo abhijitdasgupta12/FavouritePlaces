@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -20,6 +21,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -33,6 +35,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -131,6 +134,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
         /***************** Onclick events end *****************/
+
+
     }
 
     /**
@@ -150,8 +155,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnMapLongClickListener(this);
 
         Intent intent= getIntent();
+        int place_ID= intent.getIntExtra("place_ID",0);
+
         //Checking if 0th item of the listview was selected. If yes, then zoom in on user's current location
-        if (intent.getIntExtra("place_number",0)==0)
+        if (place_ID==0)
         {
             //Zoom in on user's current location
             locationManager= (LocationManager) this.getSystemService(LOCATION_SERVICE);
@@ -193,14 +200,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 getTheLocation(lastLocation,"Your Current Location");
             }
         }
-//        else
-//        {
-//            Location placeInfo = new Location(LocationManager.GPS_PROVIDER);
-//            placeInfo.setLatitude(MainActivity.locations.get(intent.getIntExtra("place_number",0)).latitude);
-//            placeInfo.setLongitude(MainActivity.locations.get(intent.getIntExtra("place_number",0)).longitude);
-//
-//            getTheLocation(placeInfo, MainActivity.places.get(intent.getIntExtra("place_number",0)));
-//        }
+        else
+        {
+            //Fetching data. Syntax: Cursor obj= new sample_class(this).Method_Implemented_Inside_"sample_class"_to_Fetch_Data;
+            Cursor cursors= new SQLiteDB_Manager(this).fetchRecordsFromSelectedRow(place_ID+1);
+
+            while (cursors.moveToNext())//reading data one by one
+            {
+                String place_name= cursors.getString(1);
+                double Lattude= Double.parseDouble(cursors.getString(2));
+                double Longitude= Double.parseDouble(cursors.getString(3));
+
+                Location placeInfo = new Location(LocationManager.GPS_PROVIDER);
+                placeInfo.setLatitude(Lattude);
+                placeInfo.setLongitude(Longitude);
+
+                getTheLocation(placeInfo, place_name);
+            }
+        }
+
     }
 
     @Override
@@ -240,12 +258,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         mMap.addMarker(new MarkerOptions().position(latLng).title(address));
 
-        addRecord(address, latLng);
+        addRecord(address, latLng.latitude, latLng.longitude);
     }
 
-    private void addRecord(String address, LatLng latLng)
+    private void addRecord(String address, double latitude, double longitude)
     {
-        String res= new SQLiteDB_Manager(this).addRecord(address, latLng.toString());
+        String res= new SQLiteDB_Manager(this).addRecord(address, String.valueOf(latitude), String.valueOf(longitude));
 
         Toast.makeText(getApplicationContext(), res, Toast.LENGTH_SHORT).show();
     }
