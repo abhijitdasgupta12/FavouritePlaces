@@ -7,7 +7,7 @@ public class ModelClass
     public ModelClass() {
     }
 
-    public ModelClass(String name, String latlng) {
+    public ModelClass(String name) {
         this.name = name;
     }
 
