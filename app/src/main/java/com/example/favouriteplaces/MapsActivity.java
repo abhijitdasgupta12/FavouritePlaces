@@ -155,55 +155,81 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnMapLongClickListener(this);
 
         Intent intent= getIntent();
-        int place_ID= intent.getIntExtra("place_ID",0);
 
-        //Checking if 0th item of the listview was selected. If yes, then zoom in on user's current location
-        if (place_ID==0)
-        {
-            //Zoom in on user's current location
-            locationManager= (LocationManager) this.getSystemService(LOCATION_SERVICE);
-            locationListener= new LocationListener() {
-                @Override
-                public void onLocationChanged(Location location)
+        /***** Initialization of Location Manager & Location Listener *****/
+        locationManager= (LocationManager) this.getSystemService(LOCATION_SERVICE);
+        locationListener= new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location)
+            {
+                mMap.clear();
+
+                LatLng userLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                String address = "";
+
+                //Getting address at where the user is
+                Geocoder geocoder= new Geocoder(getApplicationContext(), Locale.getDefault()); //Fetches the current address info of the user
+                try
                 {
-                    //user defined method to find location
-                    getTheLocation(location,"You are here");
+                    //This will return maximum 1 address information of the current location of the user
+                    List<Address> list_of_addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(),1);
+
+                    if (list_of_addresses != null && list_of_addresses.size() > 0)
+                    {
+                        if (list_of_addresses.get(0).getThoroughfare() != null) //Street name etc.
+                        {
+                            if (list_of_addresses.get(0).getSubThoroughfare() != null) //A particular area of the street name etc.
+                            {
+                                address += list_of_addresses.get(0).getSubThoroughfare()+", ";
+                            }
+                            address += list_of_addresses.get(0).getThoroughfare();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Toast.makeText(getApplicationContext(), "Error: "+ex.getMessage(), Toast.LENGTH_SHORT).show();
                 }
 
-                @Override
-                public void onStatusChanged(String provider, int status, Bundle extras) {
-
-                }
-
-                @Override
-                public void onProviderEnabled(String provider) {
-
-                }
-
-                @Override
-                public void onProviderDisabled(String provider) {
-
-                }
-            };
-
-            //Checking if location access permission was not granted at start of application
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-            {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},1);
+                mMap.addMarker(new MarkerOptions().position(userLocation).title(address));
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(userLocation));
             }
-            else
-            {
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,5,locationListener);
 
-                //Redirecting the pointer at user's current location. These two lines will make the application to work smoother by instant pointing at location at map
-                Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                getTheLocation(lastLocation,"Your Current Location");
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+
             }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+
+            }
+        };
+
+        //Checking if location access permission was not granted at start of application
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
         else
         {
-            //Fetching data. Syntax: Cursor obj= new sample_class(this).Method_Implemented_Inside_"sample_class"_to_Fetch_Data;
-            Cursor cursors= new SQLiteDB_Manager(this).fetchRecordsFromSelectedRow(place_ID+1);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 5, locationListener);
+            //Redirecting the pointer at user's current location. These two lines will make the application to work smoother by instant pointing at location at map
+            Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            getTheLocation(lastLocation, "Your Current Location");
+        }
+
+
+        //Show current saved location
+        if (intent.getIntExtra("place_ID",0)==0 || intent.getIntExtra("place_ID",0)>0)
+        {
+            //Value of intent.getIntExtra() was increased by 1 cause recyclerview index starts from 0 which doesn't match with ID of table.
+            Cursor cursors= new SQLiteDB_Manager(this).fetchRecordsFromSelectedRow(intent.getIntExtra("place_ID",-1)+1);
 
             while (cursors.moveToNext())//reading data one by one
             {
@@ -216,7 +242,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 placeInfo.setLongitude(Longitude);
 
                 getTheLocation(placeInfo, place_name);
+
+                locationManager.removeUpdates(locationListener); //Stops updating location to keep showing the saved location.
             }
+        }
+        else
+        {
+            //Renews the location updating when user presses back to get back at the beginning (after app started) state of this activity
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 5, locationListener);
+            Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            getTheLocation(lastLocation, "Your Current Location");
         }
 
     }
@@ -261,6 +296,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         addRecord(address, latLng.latitude, latLng.longitude);
     }
 
+    //Calling from SQLiteDB_Manager
     private void addRecord(String address, double latitude, double longitude)
     {
         String res= new SQLiteDB_Manager(this).addRecord(address, String.valueOf(latitude), String.valueOf(longitude));
