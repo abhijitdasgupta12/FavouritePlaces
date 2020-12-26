@@ -221,7 +221,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 5, locationListener);
             //Redirecting the pointer at user's current location. These two lines will make the application to work smoother by instant pointing at location at map
             Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            getTheLocation(lastLocation, "Your Current Location");
+            getTheLocation(lastLocation, "Your Are Here");
         }
 
 
